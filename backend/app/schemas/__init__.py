@@ -6,6 +6,11 @@ from app.schemas.auth import (
     LoginResponse,
     ApiResponse,
 )
+from app.schemas.task import (
+    TaskCreateResponse,
+    TaskListItem,
+    TaskListResponse,
+)
 
 __all__ = [
     "UserRegisterRequest",
@@ -14,4 +19,7 @@ __all__ = [
     "UserRegisterResponse",
     "LoginResponse",
     "ApiResponse",
+    "TaskCreateResponse",
+    "TaskListItem",
+    "TaskListResponse",
 ]
