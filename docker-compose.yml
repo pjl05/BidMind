@@ -37,7 +37,7 @@ services:
       dockerfile: Dockerfile
     container_name: bidmind_backend
     environment:
-      DATABASE_URL: postgresql://bidmind:bidmind123@postgres:5432/bidmind
+      DATABASE_URL: postgresql+asyncpg://bidmind:bidmind123@postgres:5432/bidmind
       REDIS_URL: redis://redis:6379/0
       JWT_SECRET_KEY: dev-secret-key-change-in-production
       JWT_ALGORITHM: HS256
