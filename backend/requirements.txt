@@ -23,6 +23,7 @@ pydantic==2.7.1
 pydantic-settings==2.2.1
 python-dotenv==1.0.1
 email-validator==2.1.1
+pypdf==5.0.1
 
 # Testing
 pytest==8.2.2
