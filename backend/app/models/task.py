@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Column, String, BigInteger, Integer, Text, DateTime
+from sqlalchemy import Column, String, BigInteger, Integer, Text, DateTime, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -31,6 +31,11 @@ class AnalysisTask(Base, UUIDMixin, TimestampMixin):
 
     started_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)
+
+    final_report = Column(Text, nullable=True)
+    requirements = Column(JSON, nullable=True)
+    scoring_criteria = Column(JSON, nullable=True)
+    bid_strategy = Column(JSON, nullable=True)
 
 
 class FileDedup(Base, TimestampMixin):
