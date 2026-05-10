@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Cookies from "js-cookie";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { api } from "@/lib/api";
+import api from "@/lib/api";
 
 interface AnalysisResult {
   task_id: string;
@@ -17,7 +17,7 @@ interface AnalysisResult {
   bid_strategy: any;
 }
 
-export default function AnalysisResultPage() {
+function ResultContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const taskId = searchParams.get("task_id");
@@ -163,5 +163,13 @@ export default function AnalysisResultPage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function AnalysisResultPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><p>加载中...</p></div>}>
+      <ResultContent />
+    </Suspense>
   );
 }

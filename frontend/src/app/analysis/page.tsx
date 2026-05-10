@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Cookies from "js-cookie";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { taskService } from "@/lib/api";
 import type { Task } from "@/types/auth";
 
-export default function AnalysisPage() {
+function AnalysisContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const taskId = searchParams.get("task_id");
@@ -141,5 +141,13 @@ export default function AnalysisPage() {
         </Card>
       </main>
     </div>
+  );
+}
+
+export default function AnalysisPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><p>加载中...</p></div>}>
+      <AnalysisContent />
+    </Suspense>
   );
 }
