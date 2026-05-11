@@ -237,3 +237,65 @@ async def generate_report_node(state: AnalysisState) -> AnalysisState:
         state.error_message = str(e)
         state.current_agent = "done"
         return state
+
+
+async def qualification_checker_node(state: AgentState) -> AgentState:
+    """Check if user qualifies for the tender based on company profile."""
+    try:
+        company = state["company_profile"]
+        requirements = state["qualification_requirements"]
+
+        if not company:
+            state["error"] = "Company profile not found"
+            state["current_step"] = "done"
+            return state
+
+        prompt = f"""基于以下企业信息和资格要求，进行资格评估。
+
+企业信息：
+- 公司名称：{company.get('company_name', '未知')}
+- 资质类型：{', '.join(company.get('qualification_types', []) or ['无'])}
+- 成立年限：{company.get('established_years', '未知')}年
+- 类似项目经验：{'有' if company.get('has_similar_projects') else '无'}
+- 年营业额：{company.get('annual_revenue', '未知')}
+- 员工人数：{company.get('employee_count', '未知')}人
+- 其他说明：{company.get('extra_notes', '无')}
+
+资格要求（{len(requirements)}条）：
+{chr(10).join([f"- {r.get('requirement', '')} [{r.get('category', '')}]" for r in requirements[:15]])}
+
+请逐条评估企业是否满足要求，返回JSON格式：
+{{
+  "results": [
+    {{
+      "requirement": "要求原文",
+      "category": "类别",
+      "is_mandatory": true/false,
+      "is_met": true/false,
+      "evidence": "满足/不满足的依据",
+      "risk_level": "low/medium/high",
+      "suggestion": "建议"
+    }}
+  ],
+  "overall_qualification": "建议投标/有风险/不建议投标",
+  "high_risk_count": 0,
+  "summary": "总体评估摘要"
+}}
+"""
+
+        system_msg = {"role": "system", "content": "你是一个专业的招投标资格评估专家。"}
+        user_msg = {"role": "user", "content": prompt}
+
+        response = await deepseek_service.chat([system_msg, user_msg])
+        data = json.loads(response)
+
+        state["qualification_results"] = data.get("results", [])
+        state["overall_qualification"] = data.get("overall_qualification", "有风险")
+        state["current_step"] = "qualification_checker"
+
+        return state
+
+    except Exception as e:
+        state["error"] = str(e)
+        state["current_step"] = "done"
+        return state
