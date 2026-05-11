@@ -6,6 +6,13 @@ from app.core.config import get_settings
 
 T = TypeVar("T", bound=BaseModel)
 
+
+class DeepSeekServiceError(Exception):
+    """Raised when DeepSeek API returns an error or malformed response."""
+
+    pass
+
+
 settings = get_settings()
 
 
@@ -66,7 +73,12 @@ class DeepSeekService:
             response.raise_for_status()
             data = response.json()
             content = data["choices"][0]["message"]["content"]
-            parsed = json.loads(content)
+            try:
+                parsed = json.loads(content)
+            except json.JSONDecodeError as e:
+                raise DeepSeekServiceError(
+                    f"Failed to parse DeepSeek response as JSON: {e}"
+                ) from e
             return response_model.model_validate(parsed)
 
     async def count_tokens(self, text: str) -> int:
