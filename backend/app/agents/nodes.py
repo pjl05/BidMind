@@ -4,6 +4,7 @@ from app.agents.models import (
     QualificationItem,
     ScoringItem,
     ParsedDocument,
+    AbortAdvice,
 )
 from app.services.deepseek import deepseek_service
 from app.services.pdf_parser import pdf_parser
@@ -292,6 +293,58 @@ async def qualification_checker_node(state: AgentState) -> AgentState:
         state["qualification_results"] = data.get("results", [])
         state["overall_qualification"] = data.get("overall_qualification", "有风险")
         state["current_step"] = "qualification_checker"
+
+        return state
+
+    except Exception as e:
+        state["error"] = str(e)
+        state["current_step"] = "done"
+        return state
+
+
+async def bid_abort_advisor_node(state: AgentState) -> AgentState:
+    """Generate abort advice when qualification fails."""
+    try:
+        qualification_results = state.get("qualification_results", [])
+        failed_requirements = [r for r in qualification_results if not r.get("is_met")]
+
+        if not failed_requirements:
+            state["current_step"] = "done"
+            return state
+
+        failed_list = "\n".join([
+            f"- {r.get('requirement', '')} ({r.get('category', '')})"
+            for r in failed_requirements
+        ])
+
+        prompt = f"""由于以下资格要求不满足，建议投标方考虑放弃本次投标：
+
+不满足的要求：
+{failed_list}
+
+请分析：
+1. 主要不满足原因
+2. 是否可以采用联合体投标方式弥补
+3. 如何为下次投标做准备（资质补齐建议）
+
+请以JSON格式返回：
+{{
+  "main_reasons": ["原因1", "原因2"],
+  "joint_venture_possible": true/false,
+  "joint_venture_advice": "联合体建议",
+  "remediation_suggestions": ["建议1", "建议2"]
+}}
+"""
+
+        system_msg = {"role": "system", "content": "你是一个专业的招投标策略顾问。"}
+        user_msg = {"role": "user", "content": prompt}
+
+        response = await deepseek_service.chat([system_msg, user_msg])
+        data = json.loads(response)
+
+        state["abort_advice"] = data
+        state["current_step"] = "bid_abort_advisor"
+        state["progress"] = 60
 
         return state
 
