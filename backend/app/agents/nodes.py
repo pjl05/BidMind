@@ -63,6 +63,7 @@ async def document_parser_node(state: AgentState) -> AgentState:
         state["extraction_quality_score"] = data.get("extraction_quality_score", state.get("extraction_quality_score", 0.5))
 
         state["current_step"] = "document_parser"
+        state["progress"] = 20
         return state
 
     except Exception as e:
@@ -293,6 +294,7 @@ async def qualification_checker_node(state: AgentState) -> AgentState:
         state["qualification_results"] = data.get("results", [])
         state["overall_qualification"] = data.get("overall_qualification", "有风险")
         state["current_step"] = "qualification_checker"
+        state["progress"] = 50
 
         return state
 
