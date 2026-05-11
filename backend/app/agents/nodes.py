@@ -62,7 +62,6 @@ async def document_parser_node(state: AgentState) -> AgentState:
         state["extraction_quality_score"] = data.get("extraction_quality_score", state.get("extraction_quality_score", 0.5))
 
         state["current_step"] = "document_parser"
-        state["progress"] = 20
         return state
 
     except Exception as e:
