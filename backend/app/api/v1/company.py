@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -23,22 +23,24 @@ async def update_company_profile(
     current_user: User = Depends(get_current_user_required),
 ) -> ApiResponse:
     result = await db.execute(
-        select(CompanyProfile).where(CompanyProfile.user_id == str(current_user.id))
+        select(CompanyProfile).where(CompanyProfile.user_id == current_user.id)
     )
     profile = result.scalar_one_or_none()
 
+    update_data = profile_data.model_dump(exclude_unset=True)
     if profile:
-        for key, value in profile_data.model_dump(exclude_unset=True).items():
+        for key, value in update_data.items():
             setattr(profile, key, value)
     else:
         profile = CompanyProfile(
-            user_id=str(current_user.id),
-            **profile_data.model_dump(exclude_unset=True),
+            user_id=current_user.id,
+            **update_data,
         )
         db.add(profile)
 
     await db.commit()
-    return ApiResponse(code=0, data={"profile_id": str(profile.id)}, message="ok")
+    await db.refresh(profile)
+    return ApiResponse(code=0, data=CompanyProfileResponse.model_validate(profile).model_dump(), message="ok")
 
 
 @router.get("", response_model=ApiResponse)
@@ -47,11 +49,11 @@ async def get_company_profile(
     current_user: User = Depends(get_current_user_required),
 ) -> ApiResponse:
     result = await db.execute(
-        select(CompanyProfile).where(CompanyProfile.user_id == str(current_user.id))
+        select(CompanyProfile).where(CompanyProfile.user_id == current_user.id)
     )
     profile = result.scalar_one_or_none()
 
     if not profile:
-        raise HTTPException(status_code=404, detail="Company profile not found")
+        return ApiResponse(code=404, data=None, message="Company profile not found")
 
     return ApiResponse(code=0, data=CompanyProfileResponse.model_validate(profile).model_dump(), message="ok")
