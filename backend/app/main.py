@@ -8,6 +8,7 @@ from app.api.v1.auth import router as auth_router
 from app.api.v1.health import router as health_router
 from app.api.v1.tasks import router as tasks_router
 from app.api.v1.analysis import router as analysis_router
+from app.api.v1.company import router as company_router
 
 settings = get_settings()
 
@@ -57,6 +58,7 @@ app.include_router(auth_router, prefix="/api/v1")
 app.include_router(health_router, prefix="/api/v1")
 app.include_router(tasks_router, prefix="/api/v1")
 app.include_router(analysis_router, prefix="/api/v1")
+app.include_router(company_router, prefix="/api/v1")
 
 
 @app.get("/")
