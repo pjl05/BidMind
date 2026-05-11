@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     JWT_EXPIRATION_HOURS: int = 24
 
     # DeepSeek API
-    DEEPSEEK_API_KEY: str = ""
+    DEEPSEEK_API_KEY: str = "sk-488c66679dfe441aa7bebb74ff2b69a4"
     DEEPSEEK_BASE_URL: str = "https://api.deepseek.com"
 
     # File Upload

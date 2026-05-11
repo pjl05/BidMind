@@ -1,6 +1,40 @@
-from typing import Optional, Literal
+from typing import TypedDict, Annotated, Optional, Literal
 from pydantic import BaseModel, Field
-from datetime import datetime
+from langgraph.graph import add_messages
+
+
+class AgentState(TypedDict):
+    # ── 任务元信息 ──────────────────────────────────
+    task_id: str
+    user_id: str
+    file_path: str
+
+    # ── 企业画像（从DB注入）──────────────────────────────
+    company_profile: Optional[dict]
+
+    # ── 文档解析层输出 ────────────────────────────────
+    raw_text: str
+    extraction_quality_score: float
+    project_info: dict
+    qualification_requirements: list
+    scoring_criteria: list
+    technical_requirements: list
+    risk_clauses: list
+
+    # ── 资格评估输出 ────────────────────────────────
+    qualification_results: list
+    overall_qualification: str
+    abort_advice: str
+
+    # ── 控制流 ──────────────────────────────────────
+    revision_count: int
+    current_step: str
+    error: Optional[str]
+    token_used: int
+    messages: Annotated[list, add_messages]
+
+
+# ── Legacy state (Week 2 Pydantic model, kept for backward compat) ──
 
 
 class AnalysisState(BaseModel):
