@@ -1,44 +1,42 @@
 from langgraph.graph import StateGraph, END
-from app.agents.schemas import AgentState, AnalysisState
-from app.agents.models import (
-    ProjectInfo,
-    QualificationItem,
-    ScoringItem,
-    ParsedDocument,
-)
-from app.services.deepseek import deepseek_service
-from app.services.pdf_parser import pdf_parser
+from app.agents.schemas import AgentState
 from app.agents.nodes import (
     document_parser_node,
-    extract_requirements_node,
-    analyze_scoring_node,
-    generate_strategy_node,
-    generate_report_node,
     qualification_checker_node,
+    bid_abort_advisor_node,
 )
-import json
+
+
+def qualification_router(state: AgentState) -> str:
+    """Route based on qualification result."""
+    overall = state.get("overall_qualification", "")
+    if overall == "不建议投标":
+        return "abort"
+    return "continue"
 
 
 def create_analysis_graph() -> StateGraph:
-    """Create the analysis workflow graph."""
+    """Create the analysis workflow graph with conditional edges."""
 
     workflow = StateGraph(AgentState)
 
-    workflow.add_node("parse_pdf", document_parser_node)
-    workflow.add_node("extract_requirements", extract_requirements_node)
-    workflow.add_node("analyze_scoring", analyze_scoring_node)
-    workflow.add_node("generate_strategy", generate_strategy_node)
-    workflow.add_node("generate_report", generate_report_node)
+    workflow.add_node("document_parser", document_parser_node)
     workflow.add_node("qualification_checker", qualification_checker_node)
+    workflow.add_node("bid_abort_advisor", bid_abort_advisor_node)
 
-    workflow.set_entry_point("parse_pdf")
+    workflow.set_entry_point("document_parser")
+    workflow.add_edge("document_parser", "qualification_checker")
 
-    workflow.add_edge("parse_pdf", "extract_requirements")
-    workflow.add_edge("extract_requirements", "analyze_scoring")
-    workflow.add_edge("analyze_scoring", "generate_strategy")
-    workflow.add_edge("generate_strategy", "generate_report")
-    workflow.add_edge("generate_report", "qualification_checker")
-    workflow.add_edge("qualification_checker", END)
+    workflow.add_conditional_edges(
+        "qualification_checker",
+        qualification_router,
+        {
+            "abort": "bid_abort_advisor",
+            "continue": END,
+        }
+    )
+
+    workflow.add_edge("bid_abort_advisor", END)
 
     return workflow.compile()
 
