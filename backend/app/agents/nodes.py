@@ -1,7 +1,74 @@
-from app.agents.schemas import AnalysisState
+from app.agents.schemas import AgentState, AnalysisState
+from app.agents.models import (
+    ProjectInfo,
+    QualificationItem,
+    ScoringItem,
+    ParsedDocument,
+)
 from app.services.deepseek import deepseek_service
 from app.services.pdf_parser import pdf_parser
 import json
+
+
+async def document_parser_node(state: AgentState) -> AgentState:
+    """Parse PDF document and extract structured information."""
+    try:
+        # Extract text from PDF
+        text = pdf_parser.extract_text(state["file_path"])
+        state["raw_text"] = text
+
+        # Quality check: Chinese character density
+        chinese_chars = sum(1 for c in text if '\u4e00' <= c <= '\u9fff')
+        total_chars = len(text)
+        density = chinese_chars / total_chars if total_chars > 0 else 0
+        state["extraction_quality_score"] = min(density * 2, 1.0) if density > 0.3 else 0.5
+
+        # Extract key sections
+        prompt = f"""从以下招投标文档中提取结构化信息。
+
+请提取以下内容（如果文档中不存在，请填写空字符串）：
+1. 项目基本信息（项目名称、项目编号、预算金额、投标截止时间、开标时间、项目实施地点、采购人、代理机构联系方式）
+2. 资格要求（逐条拆分，分类别：资质证书/业绩案例/人员配置/财务指标/其他，标注是否为否决性条件）
+3. 评分标准（评分维度、满分、评分方法、权重）
+4. 技术要求（列表）
+5. 风险条款（列表）
+
+文档内容：
+{text[:15000]}
+
+请以JSON格式返回，包含以下字段：
+- project_info: 项目基本信息对象
+- qualification_requirements: 资格要求列表
+- scoring_criteria: 评分标准列表
+- technical_requirements: 技术要求列表
+- risk_clauses: 风险条款列表
+- extraction_quality_score: 提取质量评分(0-1)
+
+确保返回的是有效的JSON格式。
+"""
+
+        system_msg = {"role": "system", "content": "你是一个专业的招投标分析助手，擅长从招标文档中提取结构化信息。"}
+        user_msg = {"role": "user", "content": prompt}
+
+        response = await deepseek_service.chat([system_msg, user_msg])
+
+        # Parse JSON response
+        data = json.loads(response)
+        state["project_info"] = data.get("project_info", {})
+        state["qualification_requirements"] = data.get("qualification_requirements", [])
+        state["scoring_criteria"] = data.get("scoring_criteria", [])
+        state["technical_requirements"] = data.get("technical_requirements", [])
+        state["risk_clauses"] = data.get("risk_clauses", [])
+        state["extraction_quality_score"] = data.get("extraction_quality_score", state.get("extraction_quality_score", 0.5))
+
+        state["current_step"] = "document_parser"
+        state["progress"] = 20
+        return state
+
+    except Exception as e:
+        state["error"] = str(e)
+        state["current_step"] = "done"
+        return state
 
 
 async def parse_pdf_node(state: AnalysisState) -> AnalysisState:
